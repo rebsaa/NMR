@@ -2,7 +2,7 @@ configfile: "config/config2.yaml"
 
 def get_inputs(wildcards):
     inputs = []
-    pattern = "Trinity/{species}/{sample}/trinity_out/Trinity.fasta"
+    pattern = "BUSCO/CDS/{species}/{sample}/short_summary.{sample}.txt"
     for SMP in config["samples"]:
         species, sample, run = SMP.split("/")
         inputs.append(pattern.format(species=species, SMP=SMP, sample=sample, run=run))
@@ -98,8 +98,8 @@ rule Busco:
         Longest="Trinity/{species}/{sample}/trinity_out/Trinity.longest.fasta"
         CDS="Trinity/{species}/{sample}/TransDecoder/Trinityx.fasta.transdecoder.cds"
     output:
-        long="BUSCO/Longest/{sample}/short_summary.{sample}.txt"
-        CDS0"BUSCO/CDS/{sample}/short_summary.{sample}.txt"
+        long="BUSCO/Longest/{species}/{sample}/short_summary.{sample}.txt"
+        CDS="BUSCO/CDS/{species}/{sample}/short_summary.{sample}.txt"
     params:
         longout="BUSCO/Longest/{sample}"
         cdsout="BUSCO/CDS/{sample}"
@@ -110,3 +110,4 @@ rule Busco:
         busco -i {input.Longest} -l {params.db} -o {params.longout} -m transcriptome -c 6
         busco -i {input.CDS} -l ./mammalia_odb10 -o {params.cdsout} -m transcriptome -c 6
         "
+        
