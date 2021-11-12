@@ -44,7 +44,7 @@ rule filter:
     output:
         file= "Filter/{species}/{sample}_{run}.sub.fq.gz"
     shell:
-        "zgrep -A3 -v -f {input.removelist} {input.file} | sed 's/cor$//g' | gzip > {output.file}"
+        "zcat {input.file} | paste -d '|' - - - - | grep -vf {input.removelist} | tr '|' '\n' | sed 's/cor$//g' | gzip > {output.file}"
 
 rule rRNA:
     input:
