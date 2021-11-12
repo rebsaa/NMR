@@ -112,8 +112,8 @@ rule Busco:
         db="BUSCO/mammalia_odb10"
     conda:"envs/busco.yaml"
     shell:
-        "
+        """
         busco -i {input.Longest} -l {params.db} -o {params.longout} -m transcriptome -c 6
         busco -i {input.CDS} -l {params.db} -o {params.cdsout} -m transcriptome -c 6
-        "
+        """
         
