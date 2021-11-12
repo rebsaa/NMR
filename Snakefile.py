@@ -70,3 +70,43 @@ rule trinity:
         """
         Trinity --seqType fq --SS_lib_type RF --left {input.left} --right {input.right} --output Trinity/{wildcards.species}/{wildcards.sample}/trinity_out --max_memory 10G
         """
+        
+rule longest:
+    input:
+        Trinity="Trinity/{species}/{sample}/trinity_out/Trinity.fasta"
+    output:
+        Longest="Trinity/{species}/{sample}/trinity_out/Trinity.longest.fasta"
+    conda:"envs/trinity.yaml"
+    shell:
+        "
+        get_longest_isoform_seq_per_trinity_gene.pl {input.Trinity} > {output.Longest}
+        "
+
+rule TransDecoder:
+    input:
+        Trinity="Trinity/{species}/{sample}/trinity_out/Trinity.fasta"
+    output:"Trinity/{species}/{sample}/TransDecoder/Trinity.fasta.transdecoder.cds"
+    conda:"envs/trinity.yaml"
+    shell:
+        "
+        TransDecoder.LongOrfs -t {input.Trinity} --output_dir TransDecoder
+        TransDecoder.Predict -t {input.Trinity}  --output_dir TransDecoder
+        "
+        
+rule Busco:
+    input:
+        Longest="Trinity/{species}/{sample}/trinity_out/Trinity.longest.fasta"
+        CDS="Trinity/{species}/{sample}/TransDecoder/Trinityx.fasta.transdecoder.cds"
+    output:
+        long="BUSCO/Longest/{sample}/short_summary.{sample}.txt"
+        CDS0"BUSCO/CDS/{sample}/short_summary.{sample}.txt"
+    params:
+        longout="BUSCO/Longest/{sample}"
+        cdsout="BUSCO/CDS/{sample}"
+        db="BUSCO/mammalia_odb10"
+    conda:"envs/busco.yaml"
+    shell:
+        "
+        busco -i {input.Longest} -l {params.db} -o {params.longout} -m transcriptome -c 6
+        busco -i {input.CDS} -l ./mammalia_odb10 -o {params.cdsout} -m transcriptome -c 6
+        "
