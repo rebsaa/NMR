@@ -19,9 +19,12 @@ rule rcorrector:
     output:
         Cor1="Cor/{species}/{sample}_1.cor.fq.gz",
         Cor2="Cor/{species}/{sample}_2.cor.fq.gz"
-    conda:"envs/rcorrector.yaml"
+    params:
+        OD="Cor/"
+    conda:
+        "envs/rcorrector.yaml"
     shell:
-        "perl ./.snakemake/conda/f39c077a1e56bf61669e242ef058cbf5/bin/run_rcorrector.pl -1 {input.Run1} -2 {input.Run2} -od /data/scratch/saager94/NMR/Cor/{wildcards.species}/"
+        "perl run_rcorrector.pl -1 {input.Run1} -2 {input.Run2} -od {params.OD}"
 
 rule removelist:
     input:
@@ -55,7 +58,8 @@ rule rRNA:
         Clean2="Clean/{species}/{sample}_clean.2.gz"
     params:
         index="SILVA/SILVA_rRNA"
-    conda:"envs/mapping.yaml"
+    conda:
+        "envs/mapping.yaml"
     shell:
         "bowtie2 --quiet --very-sensitive-local --phred33 -x {params.index} -1 {input.Sub1} -2 {input.Sub2} --threads 12 --met-file Clean/{wildcards.species}/{wildcards.sample}_bowtie2_metrics.txt --un-conc-gz Clean/{wildcards.species}/{wildcards.sample}_clean.gz -S Clean/{wildcards.species}/{wildcards.sample}_clean.sam"
 
@@ -65,7 +69,8 @@ rule trinity:
         right="Clean/{species}/{sample}_clean.2.gz"
     output:
         A="Trinity/{species}/{sample}/trinity_out/Trinity.fasta"
-    conda:"envs/trinity.yaml"
+    conda:
+        "envs/trinity.yaml"
     shell:
         """
         Trinity --seqType fq --SS_lib_type RF --left {input.left} --right {input.right} --output Trinity/{wildcards.species}/{wildcards.sample}/trinity_out --max_memory 10G
@@ -76,7 +81,8 @@ rule longest:
         Trinity="Trinity/{species}/{sample}/trinity_out/Trinity.fasta"
     output:
         Longest="Trinity/{species}/{sample}/trinity_out/Trinity.longest.fasta"
-    conda:"envs/trinity.yaml"
+    conda:
+        "envs/trinity.yaml"
     shell:
         "
         get_longest_isoform_seq_per_trinity_gene.pl {input.Trinity} > {output.Longest}
@@ -84,9 +90,11 @@ rule longest:
 
 rule TransDecoder:
     input:
-        Trinity="Trinity/{species}/{sample}/trinity_out/Trinity.fasta"
-    output:"Trinity/{species}/{sample}/TransDecoder/Trinity.fasta.transdecoder.cds"
-    conda:"envs/trinity.yaml"
+        Trinity="Trinity/{species}/{sample}/trinity_out/Trinity.fasta",
+    output:
+        "Trinity/{species}/{sample}/TransDecoder/Trinity.fasta.transdecoder.cds"
+    conda:
+        "envs/trinity.yaml"
     shell:
         "
         TransDecoder.LongOrfs -t {input.Trinity} --output_dir TransDecoder
@@ -95,19 +103,19 @@ rule TransDecoder:
         
 rule Busco:
     input:
-        Longest="Trinity/{species}/{sample}/trinity_out/Trinity.longest.fasta"
-        CDS="Trinity/{species}/{sample}/TransDecoder/Trinityx.fasta.transdecoder.cds"
+        Longest="Trinity/{species}/{sample}/trinity_out/Trinity.longest.fasta",
+        CDS="Trinity/{species}/{sample}/TransDecoder/Trinity.fasta.transdecoder.cds"
     output:
-        long="BUSCO/Longest/{species}/{sample}/short_summary.{sample}.txt"
+        long="BUSCO/Longest/{species}/{sample}/short_summary.{sample}.txt",
         CDS="BUSCO/CDS/{species}/{sample}/short_summary.{sample}.txt"
     params:
-        longout="BUSCO/Longest/{sample}"
-        cdsout="BUSCO/CDS/{sample}"
+        longout="BUSCO/Longest/{sample}",
+        cdsout="BUSCO/CDS/{sample}",
         db="BUSCO/mammalia_odb10"
     conda:"envs/busco.yaml"
     shell:
         "
         busco -i {input.Longest} -l {params.db} -o {params.longout} -m transcriptome -c 6
-        busco -i {input.CDS} -l ./mammalia_odb10 -o {params.cdsout} -m transcriptome -c 6
+        busco -i {input.CDS} -l {params.db} -o {params.cdsout} -m transcriptome -c 6
         "
         
