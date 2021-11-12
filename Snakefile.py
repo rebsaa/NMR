@@ -90,7 +90,7 @@ rule TransDecoder:
     shell:
         "
         TransDecoder.LongOrfs -t {input.Trinity} --output_dir TransDecoder
-        TransDecoder.Predict -t {input.Trinity}  --output_dir TransDecoder
+        TransDecoder.Predict -t {input.Trinity} --single_best_orf --output_dir TransDecoder
         "
         
 rule Busco:
