@@ -84,9 +84,7 @@ rule longest:
     conda:
         "envs/trinity.yaml"
     shell:
-        "
-        get_longest_isoform_seq_per_trinity_gene.pl {input.Trinity} > {output.Longest}
-        "
+        "get_longest_isoform_seq_per_trinity_gene.pl {input.Trinity} > {output.Longest}"
 
 rule TransDecoder:
     input:
@@ -96,10 +94,10 @@ rule TransDecoder:
     conda:
         "envs/trinity.yaml"
     shell:
-        "
+        """
         TransDecoder.LongOrfs -t {input.Trinity} --output_dir TransDecoder
         TransDecoder.Predict -t {input.Trinity} --single_best_orf --output_dir TransDecoder
-        "
+        """
         
 rule Busco:
     input:
