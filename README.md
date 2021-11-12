@@ -7,8 +7,8 @@ Steps:
 -rcorrector \
 -filter corrrected files \
 -remove rRNA \
--trinity
--TransDecoder
--Longest istoform
--Busco
--Diamond?
+-trinity \
+-TransDecoder \
+-Longest istoform \
+-Busco \
+-Diamond? \
