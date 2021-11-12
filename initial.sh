@@ -1,9 +1,12 @@
+mkdir ../BUSCO
 cd ../BUSCO
 
 wget https://busco-data.ezlab.org/v4/data/lineages/mammalia_odb10.2020-09-10.tar.gz
 tar -xf mammalia_odb10.2020-09-10.tar.gz 
 rm mammalia_odb10.2020-09-10.tar.gz
 
+mkdir ../SILVA
+mkdir ../SILVA/SILVA_rRNA
 cd ../SILVA
 
 #Download fasta files for lsu and ssu rRNA
