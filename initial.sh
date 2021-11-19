@@ -28,3 +28,18 @@ rm SILVA_138.1*
 
 #build bowtie2 index
 bowtie2-build --large-index --threads 6 unique_silva.fasta.gz SILVA_rRNA/SILVA_rRNA
+
+#prepare Diamond database
+
+mkdir Diamond
+cd Diamond
+
+for ENS in $(cat diamond_ref_pep.txt); do
+echo $ENS
+wget $ENS
+FILE=$(echo $ENS | cut -d '/' -f 9)
+echo $FILE
+NAME=$(echo $FILE | cut -d '.' -f 1)
+diamond makedb --in $FILE -d $NAME --ignore-warnings
+rm $FILE
+done
