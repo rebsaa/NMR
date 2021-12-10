@@ -1,8 +1,8 @@
-configfile: "config/config2.yaml"
+configfile: "config/config.yaml"
 
 def get_inputs(wildcards):
     inputs = []
-    pattern = "Trinity/{species}/{sample}/trinity_out/Trinity.fasta"
+    pattern = "Results/Trinity/{species}/{sample}/Diamond/out_Heterocephalus_glaber_male.tsv"
     for SMP in config["samples"]:
         species, sample, run = SMP.split("/")
         inputs.append(pattern.format(species=species, SMP=SMP, sample=sample, run=run))
@@ -17,18 +17,21 @@ rule rcorrector:
         Run1="{species}/{sample}_1.fastq.gz",
         Run2="{species}/{sample}_2.fastq.gz"
     output:
-        Cor1="Cor/{species}/{sample}_1.cor.fq.gz",
-        Cor2="Cor/{species}/{sample}_2.cor.fq.gz"
-    conda:"envs/rcorrector.yaml"
+        Cor1="Results/Cor/{species}/{sample}_1.cor.fq.gz",
+        Cor2="Results/Cor/{species}/{sample}_2.cor.fq.gz"
+    params:
+        OD="Results/Cor/{species}/"
+    conda:
+        "envs/rcorrector.yaml"
     shell:
-        "perl ./.snakemake/conda/f39c077a1e56bf61669e242ef058cbf5/bin/run_rcorrector.pl -1 {input.Run1} -2 {input.Run2} -od /data/scratch/saager94/NMR/Cor/{wildcards.species}/"
+        "run_rcorrector.pl -1 {input.Run1} -2 {input.Run2} -od {params.OD}"
 
 rule removelist:
     input:
-        Cor1="Cor/{species}/{sample}_1.cor.fq.gz",
-        Cor2="Cor/{species}/{sample}_2.cor.fq.gz"
+        Cor1="Results/Cor/{species}/{sample}_1.cor.fq.gz",
+        Cor2="Results/Cor/{species}/{sample}_2.cor.fq.gz"
     output:
-        removelist="Filter/{species}/{sample}_removelist.txt"
+        removelist="Results/Filter/{species}/{sample}_removelist.txt"
     shell:
         """
         zgrep unfix {input.Cor1} | cut -d " " -f 1 > unfixtmp.txt
@@ -39,34 +42,120 @@ rule removelist:
 
 rule filter:
     input:
-        file="Cor/{species}/{sample}_{run}.cor.fq.gz",
-        removelist="Filter/{species}/{sample}_removelist.txt"
+        file="Results/Cor/{species}/{sample}_{run}.cor.fq.gz",
+        removelist="Results/Filter/{species}/{sample}_removelist.txt"
     output:
-        file= "Filter/{species}/{sample}_{run}.sub.fq.gz"
+        file= "Results/Filter/{species}/{sample}_{run}.sub.fq.gz"
     shell:
-        "zgrep -A3 -v -f {input.removelist} {input.file} | sed 's/cor$//g' | gzip > {output.file}"
+        "zcat {input.file} | paste -d '|' - - - - | grep -vf {input.removelist} | tr '|' '\n' | sed 's/cor$//g' | gzip > {output.file}"
 
 rule rRNA:
     input:
-        Sub1="Filter/{species}/{sample}_1.sub.fq.gz",
-        Sub2="Filter/{species}/{sample}_2.sub.fq.gz"
+        Sub1="Results/Filter/{species}/{sample}_1.sub.fq.gz",
+        Sub2="Results/Filter/{species}/{sample}_2.sub.fq.gz"
     output:
-        Clean1="Clean/{species}/{sample}_clean.1.gz",
-        Clean2="Clean/{species}/{sample}_clean.2.gz"
+        Clean1="Results/Clean/{species}/{sample}_clean.1.gz",
+        Clean2="Results/Clean/{species}/{sample}_clean.2.gz",
+        BAM="Results/Clean/{species}/{sample}_clean.bam"
     params:
-        index="SILVA/SILVA_rRNA"
-    conda:"envs/mapping.yaml"
-    shell:
-        "bowtie2 --quiet --very-sensitive-local --phred33 -x {params.index} -1 {input.Sub1} -2 {input.Sub2} --threads 12 --met-file Clean/{wildcards.species}/{wildcards.sample}_bowtie2_metrics.txt --un-conc-gz Clean/{wildcards.species}/{wildcards.sample}_clean.gz -S Clean/{wildcards.species}/{wildcards.sample}_clean.sam"
-
-rule trinity:
-    input:
-        left="Clean/{species}/{sample}_clean.1.gz",
-        right="Clean/{species}/{sample}_clean.2.gz"
-    output:
-        A="Trinity/{species}/{sample}/trinity_out/Trinity.fasta"
-    conda:"envs/trinity.yaml"
+        SAM="Results/Clean/{species}/{sample}_clean.sam",
+        index="SILVA/SILVA_rRNA/SILVA_rRNA",
+        met="Results/Clean/{species}/{sample}_bowtie2_metrics.txt",
+        path="Results/Clean/{species}/{sample}_clean.gz"
+    conda:
+        "envs/mapping.yaml"
     shell:
         """
-        Trinity --seqType fq --SS_lib_type RF --left {input.left} --right {input.right} --output Trinity/{wildcards.species}/{wildcards.sample}/trinity_out --max_memory 10G
+        bowtie2 --quiet --very-sensitive-local --phred33 -x {params.index} -1 {input.Sub1} -2 {input.Sub2} --threads 12 --met-file {params.met} --un-conc-gz {params.path} -S {params.SAM}
+        samtools view -b {params.SAM} > {output.BAM}
+        rm {params.SAM}
+        """
+rule trinity:
+    input:
+        left="Results/Clean/{species}/{sample}_clean.1.gz",
+        right="Results/Clean/{species}/{sample}_clean.2.gz"
+    output:
+        A="Results/Trinity/{species}/{sample}/trinity_out/Trinity.fasta"
+    params:
+        outdir="Results/Trinity/{species}/{sample}/trinity_out"
+    conda:
+        "envs/trinity.yaml"
+    shell:
+        """
+        Trinity --seqType fq --SS_lib_type RF --left {input.left} --right {input.right} --output {params.outdir} --max_memory 10G
+        """
+        
+rule longest:
+    input:
+        Trinity="Results/Trinity/{species}/{sample}/trinity_out/Trinity.fasta"
+    output:
+        Longest="Results/Trinity/{species}/{sample}/trinity_out/Trinity.longest.fasta"
+    conda:
+        "envs/trinity.yaml"
+    shell:
+        "$TRINITY_HOME/util/misc/get_longest_isoform_seq_per_trinity_gene.pl {input.Trinity} > {output.Longest}"
+        
+rule TransDecoder:
+    input:
+        Trinity="Results/Trinity/{species}/{sample}/trinity_out/Trinity.fasta",
+    output:
+        PEP="Results/Trinity/{species}/{sample}/TransDecoder/Trinity.fasta.transdecoder.pep",
+        CDS="Results/Trinity/{species}/{sample}/TransDecoder/Trinity.fasta.transdecoder.cds"
+    params:
+        dir=directory("Results/Trinity/{species}/{sample}/TransDecoder/")
+    conda:
+        "envs/trinity.yaml"
+    shell:
+        """
+        mkdir -p {params.dir}
+        cd {params.dir}
+        TransDecoder.LongOrfs -t ../trinity_out/Trinity.fasta
+        TransDecoder.Predict -t ../trinity_out/Trinity.fasta
+        """
+
+
+rule Busco:
+    input:
+        Longest="Results/Trinity/{species}/{sample}/trinity_out/Trinity.longest.fasta",
+        CDS="Results/Trinity/{species}/{sample}/TransDecoder/Trinity.fasta.transdecoder.cds"
+    output:
+        long="Results/BUSCO/Longest/{species}/{sample}/short_summary.specific.mammalia_odb10.{sample}.txt",
+        CDS="Results/BUSCO/CDS/{species}/{sample}/short_summary.specific.mammalia_odb10.{sample}.txt"
+    params:
+        longout="Results/BUSCO/Longest/{species}",
+        cdsout="Results/BUSCO/CDS/{species}",
+        db="BUSCO/mammalia_odb10"
+    conda:"envs/busco.yaml"
+    shell:
+        """
+        busco -i {input.Longest} -l {params.db} --out_path {params.longout} -o {wildcards.sample} -m transcriptome -c 6 -f
+        busco -i {input.CDS} -l {params.db} --out_path {params.cdsout} -o {wildcards.sample} -m transcriptome -c 6 -f
+        """
+
+rule Diamond: 
+    input:
+        PEP="Results/Trinity/{species}/{sample}/TransDecoder/Trinity.fasta.transdecoder.cds"
+    output:
+        "Results/Trinity/{species}/{sample}/Diamond/out_Heterocephalus_glaber_male.tsv"
+    params:
+        INFILE="Results/Trinity/{species}/{sample}/Diamond/Diamond_input.cds",
+        TMP="Results/Trinity/{species}/{sample}/Diamond/Diamond_input.tmp",
+        DIR="Results/Trinity/{species}/{sample}/Diamond/"
+    conda:"envs/diamond.yaml"
+    shell:
+        """
+        cp {input.PEP} {params.INFILE}
+        for DB in $(cut -d '/' -f 9 Diamond/diamond_ref_pep.txt| cut -d '.' -f 1); do
+        echo 'There are ' $(grep -c '>' {params.INFILE}) 'sequences in the input'
+        diamond blastx -q {params.INFILE} -o {params.DIR}out_$DB.tsv -d Diamond/$DB.dmnd -p 12 --max-target-seqs 5 --id 90
+        cp {params.INFILE} {params.TMP}
+        cat {params.TMP} | tr '\\n' '|' | sed 's/>/\\n>/g'| grep -wvf <(cut -f 1 {params.DIR}out_$DB.tsv) | tr '|' '\\n' | sed -r '/^\\s*$/d' > {params.INFILE}
+        done
+        
+        for DB in $(cut -d '/' -f 9 Diamond/diamond_ref_pep.txt| cut -d '.' -f 1); do
+        echo 'There are ' $(grep -c '>' {params.INFILE}) ' in the input'
+        diamond blastx -q {params.INFILE} -o {params.DIR}out_$DB\_2.tsv -d Diamond/$DB.dmnd -p 12 --max-target-seqs 5 --id 80
+        cp {params.INFILE} {params.TMP}
+        cat {params.TMP} | tr '\\n' '|' | sed 's/>/\\n>/g'| grep -wvf <(cut -f 1 {params.DIR}out_$DB\_2.tsv) | tr '|' '\\n' | sed -r '/^\\s*$/d' > {params.INFILE}
+        done
         """
