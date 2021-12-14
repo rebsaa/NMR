@@ -43,3 +43,12 @@ NAME=$(echo $FILE | cut -d '.' -f 1)
 diamond makedb --in $FILE -d $NAME --ignore-warnings
 rm $FILE
 done
+
+mkdir -p ../BLAST/DB
+cd ../BLAST
+
+wget $(cat dbrefs.txt)
+zcat *gz > dbinput.fa
+rm *gz
+
+makeblastdb -in dbinput.fa -out 'DB/blastrefs' -dbtype nucl
