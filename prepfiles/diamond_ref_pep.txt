@@ -1,0 +1,9 @@
+http://ftp.ensembl.org/pub/release-104/fasta/heterocephalus_glaber_female/pep/Heterocephalus_glaber_female.HetGla_female_1.0.pep.all.fa.gz
+http://ftp.ensembl.org/pub/release-104/fasta/heterocephalus_glaber_male/pep/Heterocephalus_glaber_male.HetGla_1.0.pep.all.fa.gz
+http://ftp.ensembl.org/pub/release-104/fasta/fukomys_damarensis/pep/Fukomys_damarensis.DMR_v1.0.pep.all.fa.gz
+http://ftp.ensembl.org/pub/release-104/fasta/mus_musculus/pep/Mus_musculus.GRCm39.pep.all.fa.gz
+http://ftp.ensembl.org/pub/release-104/fasta/cavia_porcellus/pep/Cavia_porcellus.Cavpor3.0.pep.all.fa.gz
+http://ftp.ensembl.org/pub/release-104/fasta/cavia_aperea/pep/Cavia_aperea.CavAp1.0.pep.all.fa.gz
+http://ftp.ensembl.org/pub/release-104/fasta/octodon_degus/pep/Octodon_degus.OctDeg1.0.pep.all.fa.gz
+http://ftp.ensembl.org/pub/release-104/fasta/chinchilla_lanigera/pep/Chinchilla_lanigera.ChiLan1.0.pep.all.fa.gz
+http://ftp.ensembl.org/pub/release-104/fasta/dipodomys_ordii/pep/Dipodomys_ordii.Dord_2.0.pep.all.fa.gz
