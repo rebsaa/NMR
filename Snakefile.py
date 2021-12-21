@@ -2,10 +2,12 @@ configfile: "config/config.yaml"
 
 def get_inputs(wildcards):
     inputs = []
-    pattern = "Results/Trinity/{species}/{sample}/Diamond/out_Heterocephalus_glaber_male.tsv"
+    patternDMND = "Results/Trinity/{species}/{sample}/Diamond/Heterocephalus_glaber_male.tsv"
+    patternBUSCO = "Results/BUSCO/Longest/{species}/{sample}/short_summary.specific.mammalia_odb10.{sample}.txt"
     for SMP in config["samples"]:
         species, sample, run = SMP.split("/")
-        inputs.append(pattern.format(species=species, SMP=SMP, sample=sample, run=run))
+        inputs.append(patternDMND.format(species=species, SMP=SMP, sample=sample, run=run))
+        inputs.append(patternBUSCO.format(species=species, sample=sample))
     return inputs
 
 rule all:
